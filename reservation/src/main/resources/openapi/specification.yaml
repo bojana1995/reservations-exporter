@@ -1,0 +1,136 @@
+openapi: 3.0.0
+info:
+  title: Reservation API
+  description: API for managing reservations.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1/flexibility/reservations
+paths:
+  /{assetId}/market/{marketId}/export:
+    get:
+      summary: Download reservations in csv file
+      description: Exports reservations to a CSV file based on the provided asset ID, market ID, and time range. Optionally aggregates the total of positive and negative values. Returns a CSV file as an attachment or appropriate HTTP error responses based on the input validation and internal processing.
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the asset associated with the reservation
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the market associated with the reservation
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: The start of the time range for filtering reservations
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: The end of the time range for filtering reservations
+        - name: total
+          in: query
+          required: true
+          schema:
+            type: boolean
+            default: false
+            description: If true, aggregates the total of positive and negative values
+      responses:
+        '200':
+          description: CSV file containing the exported reservations
+          content:
+            text/csv:
+              schema:
+                type: string
+                description: CSV formatted data of the reservations
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: Indicates that the response is a file attachment
+        '400':
+          description: Bad request due to invalid input parameters, e.g., 'from' date is after 'to' date
+        '404':
+          description: No data found for the given parameters
+        '500':
+          description: Internal Server Error due to exceptions during processing
+components:
+  schemas:
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier of the reservation, represented as a long integer
+        timestamp:
+          type: string
+          format: date-time
+          description: Data time point
+        assetId:
+          type: string
+          format: uuid
+          description: Asset ID
+        marketId:
+          type: string
+          format: uuid
+          description: Market ID
+        positiveBidId:
+          type: string
+          format: uuid
+          description: Positive bid ID
+        negativeBidId:
+          type: string
+          format: uuid
+          description: Negative bid ID
+        positiveValue:
+          type: number
+          format: double
+          description: Positive value in kW
+          example: 200000
+        positiveCapacityPrice:
+          type: number
+          format: double
+          description: Positive capacity price in EUR/MW/h
+          example: 1.5
+        positiveEnergyPrice:
+          type: number
+          format: double
+          description: Positive energy price in EUR/MW/h
+          example: 1.5
+        negativeValue:
+          type: number
+          format: double
+          description: Negative value in kW
+          example: 250000
+        negativeCapacityPrice:
+          type: number
+          format: double
+          description: Negative capacity price in EUR/MW/h
+          example: 2.0
+        negativeEnergyPrice:
+          type: number
+          format: double
+          description: Negative energy price in EUR/MW/h
+          example: 2.0
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date time of updated interval
+      required:
+        - id
+        - timestamp
+        - assetId
+        - marketId
+        - updatedAt
