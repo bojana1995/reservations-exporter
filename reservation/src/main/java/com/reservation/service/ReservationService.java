@@ -16,6 +16,15 @@ import java.util.UUID;
 public interface ReservationService {
 
     /**
+     * Retrieves a list of reservations based on the provided asset and market IDs.
+     *
+     * @param assetId  the unique identifier of the asset
+     * @param marketId the unique identifier of the market
+     * @return a list of reservations matching the given asset ID and market ID
+     */
+    List<Reservation> getReservations(UUID assetId, UUID marketId);
+
+    /**
      * Retrieves a list of reservations based on asset ID, market ID and a time range.
      * Optionally calculates the total of positive and negative values.
      *

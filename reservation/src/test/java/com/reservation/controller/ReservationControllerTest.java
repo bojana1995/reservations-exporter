@@ -1,21 +1,28 @@
 package com.reservation.controller;
 
+import com.reservation.dto.ReservationDTO;
+import com.reservation.model.Reservation;
 import com.reservation.service.ReservationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +38,9 @@ public class ReservationControllerTest {
 
     @Mock
     private ReservationService reservationService;
+
+    @Mock
+    private ModelMapper modelMapper;
 
     @InjectMocks
     private ReservationController reservationController;
@@ -175,5 +185,64 @@ public class ReservationControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("attachment; filename=reservations.csv", Objects.requireNonNull(headers.getFirst(HttpHeaders.CONTENT_DISPOSITION)));
         assertEquals(csvData, response.getBody());
+    }
+
+    /**
+     * Test successful retrieval of reservations.
+     * This test simulates a scenario where reservations are found for the given asset ID and market ID.
+     * It verifies that the response contains the list of `ReservationDTO` objects and has an HTTP 200 OK status.
+     */
+    @Test
+    void testGetReservations_Success() {
+        Reservation reservation = new Reservation();
+        ReservationDTO reservationDTO = new ReservationDTO();
+
+        when(reservationService.getReservations(assetId, marketId))
+                .thenReturn(Collections.singletonList(reservation));
+        when(modelMapper.map(reservation, ReservationDTO.class))
+                .thenReturn(reservationDTO);
+
+        ResponseEntity<List<ReservationDTO>> response = reservationController.getReservations(assetId, marketId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().size());
+        assertEquals(reservationDTO, response.getBody().get(0));
+    }
+
+    /**
+     * Test scenario where no reservations are found.
+     * This test simulates a scenario where no reservations exist for the provided asset ID and market ID.
+     * It verifies that the response contains an HTTP 404 Not Found status.
+     */
+    @Test
+    void testGetReservations_NoContent() {
+        when(reservationService.getReservations(assetId, marketId))
+                .thenReturn(Collections.emptyList());
+
+        ResponseEntity<List<ReservationDTO>> response = reservationController.getReservations(assetId, marketId);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNull(response.getBody());
+    }
+
+    /**
+     * Test scenario where the asset ID and market ID are invalid (e.g., null or incorrect format).
+     * This test checks how the controller handles invalid IDs.
+     * Note: This specific scenario assumes that invalid IDs are handled elsewhere (e.g., in a validation layer).
+     * The focus here is on correct handling and mapping of valid data.
+     */
+    @Test
+    void testGetReservations_InvalidIds() {
+        UUID invalidAssetId = null;
+        UUID invalidMarketId = null;
+
+        when(reservationService.getReservations(any(UUID.class), any(UUID.class)))
+                .thenThrow(new IllegalArgumentException("Invalid UUID"));
+
+        ResponseEntity<List<ReservationDTO>> response = reservationController.getReservations(invalidAssetId, invalidMarketId);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNull(response.getBody());
     }
 }

@@ -16,6 +16,15 @@ import java.util.UUID;
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
     /**
+     * Finds reservations by asset ID and market ID.
+     *
+     * @param assetId  the unique identifier of the asset
+     * @param marketId the unique identifier of the market
+     * @return a list of reservations matching the criteria
+     */
+    List<Reservation> findByAssetIdAndMarketId(UUID assetId, UUID marketId);
+
+    /**
      * Finds reservations by asset ID, market ID and a timestamp range.
      *
      * @param assetId  the unique identifier of the asset

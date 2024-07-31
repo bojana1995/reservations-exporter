@@ -48,6 +48,21 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     /**
+     * Retrieves a list of reservations based on the provided asset ID and market ID.
+     *
+     * @param assetId  the unique identifier of the asset
+     * @param marketId the unique identifier of the market
+     * @return a list of reservations matching the given asset ID and market ID
+     */
+    @Override
+    public List<Reservation> getReservations(UUID assetId, UUID marketId) {
+        List<Reservation> reservations = reservationRepository.findByAssetIdAndMarketId(assetId, marketId);
+        reservations = convertKWToMW(reservations);
+
+        return reservations;
+    }
+
+    /**
      * Retrieves a list of reservations based on asset ID, market ID and a time range.
      * Optionally aggregates the total of positive and negative values.
      *
@@ -124,5 +139,22 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         return new ArrayList<>(aggregatedMap.values());
+    }
+
+    /**
+     * Converts the positive and negative values of a list of reservations from kilowatts (kW) to megawatts (MW).
+     * This method iterates over each reservation in the provided list and divides the `positiveValue` and
+     * `negativeValue` fields by 1000 to convert them from kW to MW. It then returns the updated list of reservations.
+     *
+     * @param reservations the list of reservations with values in kilowatts (kW)
+     * @return the list of reservations with values converted to megawatts (MW)
+     */
+    List<Reservation> convertKWToMW(List<Reservation> reservations) {
+        for (Reservation reservation : reservations) {
+            reservation.setPositiveValue(reservation.getPositiveValue() / 1000);
+            reservation.setNegativeValue(reservation.getNegativeValue() / 1000);
+        }
+
+        return reservations;
     }
 }

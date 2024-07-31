@@ -1,6 +1,9 @@
 package com.reservation.controller;
 
+import com.reservation.dto.ReservationDTO;
+import com.reservation.model.Reservation;
 import com.reservation.service.ReservationService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -13,7 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * REST controller for managing reservations.
@@ -26,6 +31,7 @@ import java.util.UUID;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final ModelMapper modelMapper;
 
     /**
      * Constructs a new instance of {@code ReservationController} with the specified {@link ReservationService}.
@@ -35,6 +41,7 @@ public class ReservationController {
     @Autowired
     public ReservationController(ReservationService reservationService) {
         this.reservationService = reservationService;
+        this.modelMapper = new ModelMapper();
     }
 
     /**
@@ -82,5 +89,40 @@ public class ReservationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An unexpected error occurred: " + e.getMessage());
         }
+    }
+
+    /**
+     * Retrieves a list of reservations for the specified asset ID and market ID.
+     * This endpoint queries the reservation service for reservations that match the provided asset ID
+     * and market ID. It maps the retrieved reservations to `ReservationDTO` objects and returns them
+     * in a JSON format.
+     *
+     * @param assetId  the unique identifier of the asset (must be a valid UUID)
+     * @param marketId the unique identifier of the market (must be a valid UUID)
+     * @return a ResponseEntity containing:
+     * - HTTP 200 OK with a list of `ReservationDTO` objects in JSON format if reservations are found
+     * - HTTP 400 Bad Request if either `assetId` or `marketId` is `null`
+     * - HTTP 404 Not Found if no reservations are found for the given asset ID and market ID
+     */
+    @GetMapping("/{assetId}/market/{marketId}")
+    public ResponseEntity<List<ReservationDTO>> getReservations(
+            @PathVariable UUID assetId,
+            @PathVariable UUID marketId) {
+
+        if (assetId == null || marketId == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        List<Reservation> reservations = reservationService.getReservations(assetId, marketId);
+
+        if (reservations.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        List<ReservationDTO> reservationDTOs = reservations.stream()
+                .map(reservation -> modelMapper.map(reservation, ReservationDTO.class))
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(reservationDTOs, HttpStatus.OK);
     }
 }

@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -59,6 +61,68 @@ public class ReservationServiceImplTest {
         marketId = UUID.randomUUID();
         from = ZonedDateTime.now().minusDays(1);
         to = ZonedDateTime.now().plusDays(1);
+    }
+
+    /**
+     * Test successful retrieval and conversion of reservations.
+     * This test simulates a scenario where reservations are found for the given asset ID and market ID,
+     * and the values are successfully converted from kW to MW.
+     * It verifies that the returned list of reservations contains the converted values.
+     */
+    @Test
+    void testGetReservations_AssetIdAndMarketId_Success() {
+        Reservation reservation = new Reservation();
+        reservation.setPositiveValue(1000);
+        reservation.setNegativeValue(2000);
+
+        when(reservationRepository.findByAssetIdAndMarketId(assetId, marketId))
+                .thenReturn(Collections.singletonList(reservation));
+
+        double expectedPositiveValue = 1.0;
+        double expectedNegativeValue = 2.0;
+
+        List<Reservation> result = reservationServiceImpl.getReservations(assetId, marketId);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        Reservation resultReservation = result.get(0);
+        assertEquals(expectedPositiveValue, resultReservation.getPositiveValue());
+        assertEquals(expectedNegativeValue, resultReservation.getNegativeValue());
+    }
+
+    /**
+     * Test retrieval with no reservations found.
+     * This test simulates a scenario where no reservations are found for the given asset ID and market ID.
+     * It verifies that an empty list is returned.
+     */
+    @Test
+    void testGetReservations_AssetIdAndMarketId_NoContent() {
+        when(reservationRepository.findByAssetIdAndMarketId(assetId, marketId))
+                .thenReturn(Collections.emptyList());
+
+        List<Reservation> result = reservationServiceImpl.getReservations(assetId, marketId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    /**
+     * Test retrieval with null asset ID and market ID.
+     * This test simulates a scenario where null values are provided as asset ID and market ID.
+     * It verifies that the service handles null inputs correctly.
+     */
+    @Test
+    void testGetReservations_AssetIdAndMarketId_NullParameters() {
+        UUID nullAssetId = null;
+        UUID nullMarketId = null;
+
+        when(reservationRepository.findByAssetIdAndMarketId(nullAssetId, nullMarketId))
+                .thenReturn(Collections.emptyList());
+
+        List<Reservation> result = reservationServiceImpl.getReservations(nullAssetId, nullMarketId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     /**
@@ -326,5 +390,63 @@ public class ReservationServiceImplTest {
         List<Reservation> result = reservationServiceImpl.aggregateReservations(reservations);
 
         assertEquals(2, result.size());
+    }
+
+    /**
+     * Test successful conversion of positive and negative values from kW to MW.
+     * This test verifies that the method correctly converts positive and negative values in a list of reservations
+     * from kilowatts (kW) to megawatts (MW) by dividing the values by 1000.
+     */
+    @Test
+    void testConvertKWToMW_Success() {
+        Reservation reservation = new Reservation();
+        reservation.setPositiveValue(1000);
+        reservation.setNegativeValue(2000);
+
+        List<Reservation> reservations = Collections.singletonList(reservation);
+
+        List<Reservation> convertedReservations = reservationServiceImpl.convertKWToMW(reservations);
+
+        assertNotNull(convertedReservations);
+        assertEquals(1, convertedReservations.size());
+        Reservation resultReservation = convertedReservations.get(0);
+        assertEquals(1.0, resultReservation.getPositiveValue());
+        assertEquals(2.0, resultReservation.getNegativeValue());
+    }
+
+    /**
+     * Test conversion with an empty list.
+     * This test verifies that the method handles an empty list correctly and returns an empty list.
+     */
+    @Test
+    void testConvertKWToMW_EmptyList() {
+        List<Reservation> reservations = Collections.emptyList();
+
+        List<Reservation> convertedReservations = reservationServiceImpl.convertKWToMW(reservations);
+
+        assertNotNull(convertedReservations);
+        assertTrue(convertedReservations.isEmpty());
+    }
+
+    /**
+     * Test conversion with reservations having zero values.
+     * This test verifies that the method correctly handles reservations where the positive and negative values are zero.
+     * The values should remain zero after conversion.
+     */
+    @Test
+    void testConvertKWToMW_ZeroValues() {
+        Reservation reservation = new Reservation();
+        reservation.setPositiveValue(0);
+        reservation.setNegativeValue(0);
+
+        List<Reservation> reservations = Collections.singletonList(reservation);
+
+        List<Reservation> convertedReservations = reservationServiceImpl.convertKWToMW(reservations);
+
+        assertNotNull(convertedReservations);
+        assertEquals(1, convertedReservations.size());
+        Reservation resultReservation = convertedReservations.get(0);
+        assertEquals(0.0, resultReservation.getPositiveValue());
+        assertEquals(0.0, resultReservation.getNegativeValue());
     }
 }
